@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <title>p5.js recording with CCapture example</title>
+  </head>
+  <body>
+    <!-- <h1>p5.js recording with CCapture example</h1> -->
+    <!-- <p>This page demonstrates how to record a <a href="https://p5js.org/">p5.js</a> animation using <a href="https://github.com/spite/ccapture.js">ccapture</a>.</p> -->
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.2.0/lib/p5.min.js"></script>
+    <script src="https://unpkg.com/ccapture.js@1.1.0/build/CCapture.all.min.js"></script>
+    <!-- <script src="./cool.js"></script> -->
+    <script>
+// the frame rate
+var fps = 60;
+
+//create an array called particles
+let particles = [];
+//a const named numOfParticles that will define how many particles there wil be
+const numOfParticles = 1300;
+//the smoothness of perlin noise
+const noiseScale = 0.001;
+
+// the canvas capturer instance
+var capturer = new CCapture({ format: 'png', framerate: fps });
+
+// setup the drawing
+function setup() {
+  createCanvas(800, 800);
+  // loop for "numOfParticles" amount of time
+  //  each time push a vector with random width and height value into the particles array
+  for(let i = 0; i < numOfParticles; i ++) {
+    particles.push(createVector(random(width), random(height)));
+    
+  }
+  //set the color of the vector
+  stroke(70,12,104);
+  strokeWeight(1.2)
+  clear();
+
+  // this is optional, but lets us see how the animation will look in browser.
+  frameRate(fps);
+}
+
+// draw
+var startMillis; // needed to subtract initial millis before first draw to begin at t=0.
+function draw() {
+  if (frameCount === 1) {
+    // start the recording on the first frame
+    // this avoids the code freeze which occurs if capturer.start is called
+    // in the setup, since v0.9 of p5.js
+    capturer.start();
+  }
+
+  if (startMillis == null) {
+    startMillis = millis();
+  }
+
+  // duration in milliseconds
+  var duration = 15000;
+
+  // compute how far we are through the animation as a value between 0 and 1.
+  var elapsed = millis() - startMillis;
+  var t = map(elapsed, 0, duration, 0, 1);
+
+  // if we have passed t=1 then end the animation.
+  if (t > 1) {
+    noLoop();
+    console.log('finished recording.');
+    capturer.stop();
+    capturer.save();
+    return;
+  }
+
+  // actually draw
+  background(245, 110, 179,5);
+  // loop
+  for(let i = 0; i < numOfParticles; i ++) {
+    let particle = particles[i];
+    // create a point with its width and height equals to the coordinate of the preexisting vector
+    point(particle.x, particle.y);
+    // create a noise value
+    let n = noise(particle.x * noiseScale, particle.y * noiseScale, frameCount * noiseScale * noiseScale);
+   
+    // the direction that the point will be moving along
+    let angle = TAU * n;
+    direction(particle,angle)
+    if(!onScreen(particle) ) {
+      particle.x = random(width);
+      particle.y = random(height);
+    }
+  }
+  if(frameCount %120 ==0) {
+    changeDirection()
+    changeRGB()
+  }
+  // end drawing code
+
+  // handle saving the frame
+  console.log('capturing frame');
+  capturer.capture(document.getElementById('defaultCanvas0'));
+}
+
+function direction(p,a) {
+  p.x += sin(a)
+  p.y += cos(a)-2*cos(2*a)-cos(4*a)
+}
+
+// change the direction with 
+function changeDirection() {
+  noiseSeed(millis());
+}
+
+function changeRGB() {
+  let r = random(255);
+  let g = random(255);
+  let b = random(255);
+  stroke(r,g,b);
+  background(r,g-120,b)
+}
+
+// check if the particle is still onscreen
+function onScreen(v) {
+  return v.x >= 0 && v.x <= width && v.y >= 0 && v.y <= height;
+}
+    </script>
+  </body>
+</html>
